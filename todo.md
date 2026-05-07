@@ -128,3 +128,12 @@
 - topKeywords: text (JSON)
 - createdAt: timestamp
 - updatedAt: timestamp
+
+## Phase 5 추가: CSV 내보내기 기능
+- [x] CSV 내보내기 기능 구현
+  - [x] 고객 데이터 CSV 내보내기 (이름, 전화, 직업, 상태, 다음 연락일)
+  - [x] 구매 내역 CSV 내보내기 (고객명, 제품명, 수량, 가격)
+  - [x] 통합 CSV 내보내기 (모든 데이터)
+  - [x] 내보내기 버튼 UI 추가 (설정 화면)
+  - [x] 파일 다운로드 기능 구현
+  - [x] CSV 내보내기 테스트 (6개 테스트 통과)
