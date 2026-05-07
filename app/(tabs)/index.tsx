@@ -1,6 +1,9 @@
-import { ScrollView, Text, View, TouchableOpacity } from "react-native";
-
+import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
+import { startOAuthLogin } from "@/constants/oauth";
 
 /**
  * ProspectAI 홈 화면
@@ -8,6 +11,19 @@ import { ScreenContainer } from "@/components/screen-container";
  * 가망 고객 관리 앱의 메인 화면입니다.
  */
 export default function HomeScreen() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  // 로그인된 경우 고객 탭으로 이동
+  useEffect(() => {
+    if (user) {
+      router.replace("/(tabs)/customers");
+    }
+  }, [user, router]);
+
+  const handleGetStarted = async () => {
+    await startOAuthLogin();
+  };
   return (
     <ScreenContainer className="p-6">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -30,8 +46,16 @@ export default function HomeScreen() {
 
           {/* 시작 버튼 */}
           <View className="items-center">
-            <TouchableOpacity className="bg-primary px-6 py-3 rounded-full active:opacity-80">
-              <Text className="text-background font-semibold">시작하기</Text>
+            <TouchableOpacity
+              onPress={handleGetStarted}
+              disabled={loading}
+              className="bg-primary px-6 py-3 rounded-full active:opacity-80"
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text className="text-background font-semibold">시작하기</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
