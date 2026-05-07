@@ -28,19 +28,19 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "ProspectAI - AI 가망 고객 관리 앱",
+  appName: "ProspectAI",
   appSlug: "prospect-ai",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "",
+  logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663531809353/n4qqiZSPohZ7dVuWNjVCGM/icon-ZL76cDM3rpwvoixPtmvFL3.webp",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
 };
 
 const config: ExpoConfig = {
-  name: env.appName,
-  slug: env.appSlug,
+  name: "ProspectAI",
+  slug: "prospect-ai",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
