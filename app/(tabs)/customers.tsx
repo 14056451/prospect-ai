@@ -152,7 +152,7 @@ export default function CustomersScreen() {
           className="mb-4"
           contentContainerStyle={{ gap: 8 }}
         >
-          {(["전체", "1차상담", "2차", "소비자", "사업자"] as const).map((status) => (
+          {(["전체", "1차상담", "2차"] as const).map((status) => (
             <TouchableOpacity
               key={status}
               onPress={() => setSelectedStatus(status)}

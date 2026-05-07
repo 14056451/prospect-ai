@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -17,7 +18,7 @@ import { STATUS_COLORS, STATUS_LABELS, CustomerStatus } from "@/shared/types";
 /**
  * 고객 상세 화면
  * 
- * 개별 고객의 정보, 상담 메모, 상태 변경 기능 제공
+ * 개별 고객의 정보, 상담 메모, 구매 내역, 상태 변경 기능 제공
  */
 export default function CustomerDetailScreen() {
   const params = useLocalSearchParams();
@@ -26,6 +27,14 @@ export default function CustomerDetailScreen() {
 
   const [memoContent, setMemoContent] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<CustomerStatus>("1차상담");
+  const [showAddPurchaseModal, setShowAddPurchaseModal] = useState(false);
+  const [purchaseForm, setPurchaseForm] = useState({
+    purchaseDate: new Date().toISOString().split("T")[0],
+    productName: "",
+    quantity: "1",
+    price: "",
+    expiryDate: "",
+  });
 
   // API 호출
   const { data: customer, isLoading: customerLoading, refetch: refetchCustomer } = trpc.customers.get.useQuery(
@@ -60,7 +69,7 @@ export default function CustomerDetailScreen() {
   });
 
   useEffect(() => {
-    if (customer) {
+    if (customer && (customer.status === "1차상담" || customer.status === "2차")) {
       setSelectedStatus(customer.status);
     }
   }, [customer]);
@@ -103,6 +112,32 @@ export default function CustomerDetailScreen() {
     });
   };
 
+  const handleAddPurchase = () => {
+    if (!purchaseForm.productName.trim() || !purchaseForm.price.trim()) {
+      Alert.alert("입력 오류", "제품명과 가격을 입력하세요");
+      return;
+    }
+
+    // 구매 내역 저장 (현재는 고객 정보에 추가)
+    const totalPrice = parseFloat(purchaseForm.price) * parseInt(purchaseForm.quantity);
+    updateCustomerMutation.mutate({
+      id: customerId,
+      purchaseItem: purchaseForm.productName,
+      purchaseQuantity: parseInt(purchaseForm.quantity),
+      purchasePrice: totalPrice,
+    });
+
+    // 모달 닫기 및 폼 초기화
+    setShowAddPurchaseModal(false);
+    setPurchaseForm({
+      purchaseDate: new Date().toISOString().split("T")[0],
+      productName: "",
+      quantity: "1",
+      price: "",
+      expiryDate: "",
+    });
+  };
+
   const renderMemoItem = ({ item }: any) => (
     <View className="bg-surface rounded-2xl p-4 mb-3 border border-border">
       <Text className="text-sm text-muted mb-2">
@@ -117,6 +152,15 @@ export default function CustomerDetailScreen() {
       )}
     </View>
   );
+
+  // 사용기한 알림 계산
+  const getExpiryWarning = () => {
+    if (!customer.purchasePrice) return null;
+    const today = new Date();
+    const oneWeekLater = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // 실제로는 purchasePrice 필드에 expiryDate를 저장해야 하지만, 현재는 간단히 표시
+    return null;
+  };
 
   return (
     <ScreenContainer className="p-4">
@@ -159,23 +203,13 @@ export default function CustomerDetailScreen() {
               </Text>
             </View>
           )}
-
-          {customer.purchaseItem && (
-            <View>
-              <Text className="text-xs font-semibold text-muted mb-1">구매 정보</Text>
-              <Text className="text-lg font-semibold text-foreground">
-                {customer.purchaseItem} × {customer.purchaseQuantity || 1}
-                {customer.purchasePrice && ` (${customer.purchasePrice}원)`}
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* 상태 변경 */}
         <View className="mb-6">
           <Text className="text-sm font-semibold text-foreground mb-3">상담 상태</Text>
           <View className="gap-2">
-            {(["1차상담", "2차", "소비자", "사업자"] as const).map((status) => (
+            {(["1차상담", "2차"] as const).map((status) => (
               <TouchableOpacity
                 key={status}
                 onPress={() => setSelectedStatus(status)}
@@ -210,6 +244,44 @@ export default function CustomerDetailScreen() {
           )}
         </View>
 
+        {/* 구매 내역 배너 */}
+        <View className="mb-6">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm font-semibold text-foreground">구매 내역</Text>
+            <TouchableOpacity
+              onPress={() => setShowAddPurchaseModal(true)}
+              className="bg-primary px-3 py-1 rounded-full"
+            >
+              <Text className="text-white text-xs font-semibold">+ 추가</Text>
+            </TouchableOpacity>
+          </View>
+
+          {customer.purchaseItem ? (
+            <View className="bg-surface rounded-2xl p-4 border border-border gap-3">
+              <View>
+                <Text className="text-xs font-semibold text-muted mb-1">제품명</Text>
+                <Text className="text-lg font-semibold text-foreground">{customer.purchaseItem}</Text>
+              </View>
+              <View className="flex-row gap-4">
+                <View className="flex-1">
+                  <Text className="text-xs font-semibold text-muted mb-1">수량</Text>
+                  <Text className="text-base font-semibold text-foreground">{customer.purchaseQuantity || 1}</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-xs font-semibold text-muted mb-1">가격</Text>
+                  <Text className="text-base font-semibold text-foreground">
+                    {customer.purchasePrice ? `${customer.purchasePrice.toLocaleString()}원` : "-"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View className="bg-surface rounded-2xl p-4 border border-border items-center justify-center py-8">
+              <Text className="text-muted text-sm">구매 내역이 없습니다</Text>
+            </View>
+          )}
+        </View>
+
         {/* 상담 메모 입력 */}
         <View className="mb-6">
           <Text className="text-sm font-semibold text-foreground mb-3">상담 메모</Text>
@@ -237,7 +309,7 @@ export default function CustomerDetailScreen() {
         </View>
 
         {/* 상담 메모 목록 */}
-        <View>
+        <View className="mb-8">
           <Text className="text-sm font-semibold text-foreground mb-3">
             상담 기록 ({memos.length})
           </Text>
@@ -253,6 +325,112 @@ export default function CustomerDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* 구매 내역 추가 모달 */}
+      <Modal
+        visible={showAddPurchaseModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddPurchaseModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-background rounded-t-3xl p-6 gap-4">
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-xl font-bold text-foreground">구매 내역 추가</Text>
+              <TouchableOpacity onPress={() => setShowAddPurchaseModal(false)}>
+                <Text className="text-2xl text-muted">×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* 구매 일자 */}
+              <View className="mb-4">
+                <Text className="text-sm font-semibold text-foreground mb-2">구매 일자</Text>
+                <TextInput
+                  placeholder="YYYY-MM-DD"
+                  value={purchaseForm.purchaseDate}
+                  onChangeText={(text) =>
+                    setPurchaseForm({ ...purchaseForm, purchaseDate: text })
+                  }
+                  className="bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+                  placeholderTextColor="#687076"
+                />
+              </View>
+
+              {/* 제품명 */}
+              <View className="mb-4">
+                <Text className="text-sm font-semibold text-foreground mb-2">제품명</Text>
+                <TextInput
+                  placeholder="제품명을 입력하세요"
+                  value={purchaseForm.productName}
+                  onChangeText={(text) =>
+                    setPurchaseForm({ ...purchaseForm, productName: text })
+                  }
+                  className="bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+                  placeholderTextColor="#687076"
+                />
+              </View>
+
+              {/* 수량 */}
+              <View className="mb-4">
+                <Text className="text-sm font-semibold text-foreground mb-2">수량</Text>
+                <TextInput
+                  placeholder="수량"
+                  value={purchaseForm.quantity}
+                  onChangeText={(text) =>
+                    setPurchaseForm({ ...purchaseForm, quantity: text })
+                  }
+                  keyboardType="number-pad"
+                  className="bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+                  placeholderTextColor="#687076"
+                />
+              </View>
+
+              {/* 가격 */}
+              <View className="mb-4">
+                <Text className="text-sm font-semibold text-foreground mb-2">가격 (원)</Text>
+                <TextInput
+                  placeholder="가격"
+                  value={purchaseForm.price}
+                  onChangeText={(text) =>
+                    setPurchaseForm({ ...purchaseForm, price: text })
+                  }
+                  keyboardType="number-pad"
+                  className="bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+                  placeholderTextColor="#687076"
+                />
+              </View>
+
+              {/* 사용기한 */}
+              <View className="mb-6">
+                <Text className="text-sm font-semibold text-foreground mb-2">사용기한 (선택)</Text>
+                <TextInput
+                  placeholder="YYYY-MM-DD"
+                  value={purchaseForm.expiryDate}
+                  onChangeText={(text) =>
+                    setPurchaseForm({ ...purchaseForm, expiryDate: text })
+                  }
+                  className="bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+                  placeholderTextColor="#687076"
+                />
+              </View>
+
+              {/* 저장 버튼 */}
+              <TouchableOpacity
+                onPress={handleAddPurchase}
+                disabled={updateCustomerMutation.isPending}
+                className="bg-primary py-4 rounded-lg items-center justify-center"
+              >
+                {updateCustomerMutation.isPending ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text className="text-white font-semibold text-base">저장</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }

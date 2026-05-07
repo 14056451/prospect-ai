@@ -13,7 +13,7 @@ export * from "./_core/errors";
 /**
  * 고객 상태 타입
  */
-export type CustomerStatus = "1차상담" | "2차" | "소비자" | "사업자";
+export type CustomerStatus = "1차상담" | "2차";
 
 /**
  * 고객 정보 (프론트엔드용)
@@ -97,8 +97,6 @@ export const PREMIUM_LIMITS = {
 export const STATUS_COLORS = {
   "1차상담": "#3B82F6",
   "2차": "#F59E0B",
-  소비자: "#22C55E",
-  사업자: "#8B5CF6",
 } as const;
 
 /**
@@ -107,6 +105,4 @@ export const STATUS_COLORS = {
 export const STATUS_LABELS = {
   "1차상담": "1차 상담",
   "2차": "2차 상담",
-  소비자: "소비자",
-  사업자: "사업자",
 } as const;
