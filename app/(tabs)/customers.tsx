@@ -31,7 +31,7 @@ export default function CustomersScreen() {
   });
 
   // API 호출
-  const { data: customers = [], isLoading, refetch } = trpc.customers.list.useQuery();
+  const { data: customers = [], isLoading, refetch, error: listError, isError: isListError } = trpc.customers.list.useQuery();
   const createCustomerMutation = trpc.customers.create.useMutation({
     onSuccess: () => {
       refetch();
@@ -174,7 +174,11 @@ export default function CustomersScreen() {
         </ScrollView>
 
         {/* 고객 리스트 */}
-        {isLoading ? (
+        {isListError ? (
+          <View className="flex-1 justify-center items-center">
+            <Text className="text-error text-center">오류: {listError?.message || '고객 목록을 불러올 수 없습니다'}</Text>
+          </View>
+        ) : isLoading ? (
           <View className="flex-1 justify-center items-center">
             <ActivityIndicator size="large" color="#0a7ea4" />
           </View>
