@@ -1,6 +1,7 @@
 import { ThemedView } from "@/components/themed-view";
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
+import * as AuthStorage from "@/lib/_core/auth-storage";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -53,6 +54,8 @@ export default function OAuthCallback() {
                 lastSignedIn: new Date(userData.lastSignedIn || Date.now()),
               };
               await Auth.setUserInfo(userInfo);
+              // AsyncStorage에 로그인 정보 저장 (자동 로그인용)
+              await AuthStorage.saveLoginInfo(params.sessionToken, userData.id, userData.email, userData.name);
               console.log("[OAuth] User info stored:", userInfo);
             } catch (err) {
               console.error("[OAuth] Failed to parse user data:", err);
@@ -204,6 +207,15 @@ export default function OAuthCallback() {
               lastSignedIn: new Date(result.user.lastSignedIn || Date.now()),
             };
             await Auth.setUserInfo(userInfo);
+            // AsyncStorage에 로그인 정보 저장 (자동 로그인용)
+            if (result.user) {
+              await AuthStorage.saveLoginInfo(
+                result.sessionToken,
+                result.user.id,
+                result.user.email,
+                result.user.name
+              );
+            }
             console.log("[OAuth] User info stored:", userInfo);
           } else {
             console.log("[OAuth] No user data in result");
